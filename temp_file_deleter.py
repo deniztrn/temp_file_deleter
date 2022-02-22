@@ -9,7 +9,7 @@ def is_old(item: str, delete_before: int) -> bool:
 	return (now - item_last_update_time) > delete_before * 3600
 
 
-def old_files(folder_path: str, delete_before: int) -> list:
+def get_old_files(folder_path: str, delete_before: int) -> list:
 	"""Gets the `list` of files from the input path."""
 	file_list = []
 	for root, sub_folder, items in os.walk(folder_path, topdown=False):
@@ -20,7 +20,7 @@ def old_files(folder_path: str, delete_before: int) -> list:
 	return file_list
 
 
-def old_folders(folder_path: str, delete_before: int) -> list:
+def get_old_folders(folder_path: str, delete_before: int) -> list:
 	"""Gets the `list` of folders from the input path."""
 	folder_list = []
 	for root, sub_folder, items in os.walk(folder_path, topdown=False):
@@ -33,8 +33,8 @@ def temp_file_deleter():
 	"""Deletes items in the path as per to the last modification time"""
 	path = input(print("Please enter the main folder path: "))
 	hours = int(input("Files will be deleted which are not updated since x hours. Please enter 'x': "))
-	files = old_files(path, hours)
-	folders = old_folders(path, hours)
+	files = get_old_files(path, hours)
+	folders = get_old_folders(path, hours)
 	for i in range(len(files)):
 		os.remove(files[i])
 	for i in range(len(folders)):
