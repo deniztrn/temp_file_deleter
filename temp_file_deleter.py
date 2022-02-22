@@ -1,58 +1,48 @@
-import datetime
 import os
-import shutil
 from datetime import datetime as dt
-from time import sleep
 
 
-def temp_file_deleter(dir_path: str, delete_before: int) -> None:
-	"""
-	Gets the `list` of files and folders with the last modification time. Deletes the items which are not modified
-	since specified hours.
-
-	:param dir_path: Folder path to delete the old files.
-	:param delete_before: Specified hours to keep the temp files.
-	:return: list of deleted files
-	"""
-	global item_path, file_path, source_file
+def is_old(item: str, delete_before: int) -> bool:
+	"""Checks if the file was modified before the specified time"""
 	now = dt.now().timestamp()
-	items = next(os.walk(dir_path))
-	folder_list = items[1]
-	file_list = items[2]
-	deleted_folders = []
-	deleted_files = []
-	# Folder deletion
-	for folder in range(len(folder_list)):
-		item_path = dir_path + "\\" + folder_list[folder]
-		item_time = os.path.getmtime(dir_path + "\\" + folder_list[folder])
-		if (now - item_time) > delete_before * 3600:
-			print("Folder DELETED: " + item_path)
-			deleted_folders.append(item_path)
-		shutil.rmtree(item_path)
-
-	# File deletion
-	for file in range(len(file_list)):
-		file_path = dir_path + "\\" + file_list[file]
-		file_time = os.path.getmtime(dir_path + "\\" + file_list[file])
-		if (now - file_time) > delete_before * 3600:
-			print("File DELETED: " + file_path)
-			deleted_files.append(file_path)
-		os.remove(file_path)
-	source_file = open('deleted_file_list.txt', 'a')
-	print(f"{len(deleted_files)} out of {len(file_list)} files and {len(deleted_folders)} out of "
-	      f"{len(folder_list)} folders are deleted" + f"{deleted_files}" f"{deleted_folders}" + str(
-		datetime.datetime.now()), file=source_file)
-	source_file.close()
-
-	return None
+	item_last_update_time = os.path.getmtime(item)
+	return (now - item_last_update_time) > delete_before * 3600
 
 
-# Input Path: The folder path which will be checked by the script for deletion
-path = input(print("Please enter the path name: "))
+def old_files(folder_path: str, delete_before: int) -> list:
+	"""Gets the `list` of files from the input path."""
+	file_list = []
+	for root, sub_folder, items in os.walk(folder_path, topdown=False):
+		for i in range(len(items)):
+			item = os.path.join(root, items[i])
+			if is_old(item, delete_before):
+				file_list.append(item)
+	return file_list
 
-# Input Hours: Filters the files as per to the last modification time.
-# Files will be removed if the files or folders last modification time is older than the specified hours.
-hours = int(input(print("Please specify the age of the files with to delete")))
 
-temp_file_deleter(path, hours)
-sleep(5)
+def old_folders(folder_path: str, delete_before: int) -> list:
+	"""Gets the `list` of folders from the input path."""
+	folder_list = []
+	for root, sub_folder, items in os.walk(folder_path, topdown=False):
+		if is_old(root, delete_before):
+			folder_list.append(root)
+	return folder_list[:-1]
+
+
+def temp_file_deleter():
+	"""Deletes items in the path as per to the last modification time"""
+	path = input(print("Please enter the main folder path: "))
+	hours = int(input("Files will be deleted which are not updated since x hours. Please enter 'x': "))
+	files = old_files(path, hours)
+	folders = old_folders(path, hours)
+	for i in range(len(files)):
+		os.remove(files[i])
+	for i in range(len(folders)):
+		os.rmdir(folders[i])
+	return folders + files
+
+
+deleted_items = temp_file_deleter()
+source_file = open('deleted_file_list.txt', 'a')
+print(f"{len(deleted_items)} items were deleted at: " + str(dt.now()) + " " + str(deleted_items), file=source_file)
+source_file.close()
